@@ -1,1 +1,16 @@
-<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><style>.st0{fill:#f6f6f6;fill-opacity:0}.st1{fill:#fff}.st2{fill:#167abf}</style><path class="st0" d="M1024 1024H0V0h1024v1024z"/><path class="st1" d="M1024 85.333v853.333H0V85.333h1024z"/><path class="st2" d="M0 85.333h298.667v853.333H0V85.333zm1024 0v853.333H384V85.333h640zm-554.667 160h341.333v-64H469.333v64zm341.334 533.334H469.333v64h341.333l.001-64zm128-149.334H597.333v64h341.333l.001-64zm0-149.333H597.333v64h341.333l.001-64zm0-149.333H597.333v64h341.333l.001-64z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+	<defs>
+		<linearGradient id="aster-left" x1="12" y1="21" x2="63" y2="107" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#7DD3FC" />
+			<stop offset="1" stop-color="#2563EB" />
+		</linearGradient>
+		<linearGradient id="aster-right" x1="53" y1="8" x2="116" y2="120" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#38BDF8" />
+			<stop offset="1" stop-color="#0F172A" />
+		</linearGradient>
+	</defs>
+	<path d="M14 40.4 48 21v86L14 88.5V40.4Z" fill="url(#aster-left)" />
+	<path d="M78.2 8 114 27.3v74.1L78.2 120 42.3 100.9V26.9L78.2 8Z" fill="url(#aster-right)" />
+	<path d="m48 21 30.2 18.4v80.6L48 101.7V21Z" fill="#F8FAFC" fill-opacity=".94" />
+	<path d="m78.2 39.5 22.3 12.4v24.2L78.2 88.5 56 76.1V51.9l22.2-12.4Z" fill="#E0F2FE" />
+</svg>
