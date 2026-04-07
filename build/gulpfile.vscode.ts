@@ -43,6 +43,7 @@ const glob = promisify(globCallback);
 const rcedit = promisify(rceditCallback);
 const root = path.dirname(import.meta.dirname);
 const commit = getVersion(root);
+const buildFolderPrefix = product.nameShort.replace(/\s+/g, '');
 
 // Build
 const vscodeEntryPoints = [
@@ -688,7 +689,7 @@ BUILD_TARGETS.forEach(buildTarget => {
 
 	const [vscode, vscodeMin] = ['', 'min'].map(minified => {
 		const sourceFolderName = `out-vscode${dashed(minified)}`;
-		const destinationFolderName = `VSCode${dashed(platform)}${dashed(arch)}`;
+		const destinationFolderName = `${buildFolderPrefix}${dashed(platform)}${dashed(arch)}`;
 
 		const packageTasks: task.Task[] = [
 			compileNativeExtensionsBuildTask,
