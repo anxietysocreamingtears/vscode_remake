@@ -8,6 +8,7 @@ import { localize, localize2 } from '../../../../nls.js';
 import { MultiWindowParts, Part } from '../../part.js';
 import { ITitleService } from '../../../services/title/browser/titleService.js';
 import { getWCOTitlebarAreaRect, getZoomFactor, isWCOEnabled } from '../../../../base/browser/browser.js';
+import { AcrylicOpacities, AcrylicSetting, isAcrylicEnabled } from '../../../../platform/window/common/acrylic.js';
 import { MenuBarVisibility, getTitleBarStyle, getMenuBarVisibility, hasCustomTitlebar, hasNativeTitlebar, DEFAULT_CUSTOM_TITLEBAR_HEIGHT, getWindowControlsStyle, WindowControlsStyle, TitlebarStyle, MenuSettings, hasNativeMenu } from '../../../../platform/window/common/window.js';
 import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
 import { StandardMouseEvent } from '../../../../base/browser/mouseEvent.js';
@@ -392,6 +393,10 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 		// Command Center
 		if (event.affectsConfiguration(LayoutSettings.COMMAND_CENTER)) {
 			this.recreateTitle();
+		}
+
+		if (event.affectsConfiguration(AcrylicSetting)) {
+			this.updateStyles();
 		}
 	}
 
@@ -779,7 +784,12 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 				this.element.classList.remove('inactive');
 			}
 
+			const acrylicEnabled = isAcrylicEnabled(this.configurationService);
 			const titleBackground = this.getColor(this.isInactive ? TITLE_BAR_INACTIVE_BACKGROUND : TITLE_BAR_ACTIVE_BACKGROUND, (color, theme) => {
+				if (acrylicEnabled) {
+					return color.transparent(this.isInactive ? AcrylicOpacities.titleBarInactive : AcrylicOpacities.titleBarActive);
+				}
+
 				// LCD Rendering Support: the title bar part is a defining its own GPU layer.
 				// To benefit from LCD font rendering, we must ensure that we always set an
 				// opaque background color. As such, we compute an opaque color given we know
@@ -792,7 +802,8 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 				this.appIconBadge.style.backgroundColor = titleBackground;
 			}
 
-			if (titleBackground && Color.fromHex(titleBackground).isLighter()) {
+			const parsedTitleBackground = titleBackground ? (Color.Format.CSS.parse(titleBackground) ?? Color.fromHex(titleBackground)) : null;
+			if (parsedTitleBackground?.isLighter()) {
 				this.element.classList.add('light');
 			} else {
 				this.element.classList.remove('light');

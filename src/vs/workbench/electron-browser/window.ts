@@ -78,7 +78,9 @@ import { ThemeIcon } from '../../base/common/themables.js';
 import { getWorkbenchContribution } from '../common/contributions.js';
 import { DynamicWorkbenchSecurityConfiguration } from '../common/configuration.js';
 import { nativeHoverDelegate } from '../../platform/hover/browser/hover.js';
-import { WINDOW_ACTIVE_BORDER, WINDOW_INACTIVE_BORDER } from '../common/theme.js';
+import { editorBackground } from '../../platform/theme/common/colorRegistry.js';
+import { AcrylicOpacities, isAcrylicEnabled, toAcrylicColor } from '../../platform/window/common/acrylic.js';
+import { PANEL_BACKGROUND, SIDE_BAR_BACKGROUND, SIDE_BAR_TITLE_BACKGROUND, STATUS_BAR_BACKGROUND, STATUS_BAR_NO_FOLDER_BACKGROUND, TITLE_BAR_ACTIVE_BACKGROUND, TITLE_BAR_INACTIVE_BACKGROUND, WINDOW_ACTIVE_BORDER, WINDOW_INACTIVE_BORDER, WORKBENCH_BACKGROUND } from '../common/theme.js';
 import { IContextMenuService } from '../../platform/contextview/browser/contextView.js';
 
 export class NativeWindow extends BaseWindow {
@@ -376,6 +378,13 @@ export class NativeWindow extends BaseWindow {
 			} else if (e.affectsConfiguration('window.border')) {
 				this.updateWindowBorder();
 			}
+			if (e.affectsConfiguration('ui.acrylic.enabled')) {
+				this.updateAcrylicAppearance();
+			}
+		}));
+		this._register(this.themeService.onDidColorThemeChange(() => {
+			this.updateWindowBorder();
+			this.updateAcrylicAppearance();
 		}));
 
 		this._register(onDidChangeZoomLevel(targetWindowId => this.handleOnDidChangeZoomLevel(targetWindowId)));
@@ -700,6 +709,7 @@ export class NativeWindow extends BaseWindow {
 
 		// Window border
 		this.updateWindowBorder();
+		this.updateAcrylicAppearance();
 
 		// Smoke Test Driver
 		if (this.environmentService.enableSmokeTestDriver) {
@@ -990,6 +1000,48 @@ export class NativeWindow extends BaseWindow {
 		}
 
 		this.nativeHostService.updateWindowAccentColor(activeBorder, inactiveBorder);
+	}
+
+	private updateAcrylicAppearance(): void {
+		const root = mainWindow.document.documentElement;
+		const body = mainWindow.document.body;
+		const workbench = this.layoutService.mainContainer;
+		const enabled = isAcrylicEnabled(this.configurationService);
+		const variableNames = [
+			'--aster-acrylic-editor-background',
+			'--aster-acrylic-sidebar-background',
+			'--aster-acrylic-sidebar-title-background',
+			'--aster-acrylic-panel-background',
+			'--aster-acrylic-titlebar-background',
+			'--aster-acrylic-titlebar-inactive-background',
+			'--aster-acrylic-statusbar-background',
+			'--aster-acrylic-statusbar-no-folder-background',
+			'--aster-acrylic-outline'
+		];
+
+		workbench.classList.toggle('acrylic-enabled', enabled);
+		body?.classList.toggle('acrylic-enabled', enabled);
+
+		if (!enabled) {
+			for (const variableName of variableNames) {
+				root.style.removeProperty(variableName);
+			}
+			return;
+		}
+
+		const theme = this.themeService.getColorTheme();
+		const workbenchBackground = theme.getColor(editorBackground) ?? WORKBENCH_BACKGROUND(theme);
+		const outline = theme.getColor(WINDOW_ACTIVE_BORDER) ?? theme.getColor(WINDOW_INACTIVE_BORDER);
+
+		root.style.setProperty('--aster-acrylic-editor-background', toAcrylicColor(theme.getColor(editorBackground), AcrylicOpacities.editor, workbenchBackground));
+		root.style.setProperty('--aster-acrylic-sidebar-background', toAcrylicColor(theme.getColor(SIDE_BAR_BACKGROUND), AcrylicOpacities.sideBar, workbenchBackground));
+		root.style.setProperty('--aster-acrylic-sidebar-title-background', toAcrylicColor(theme.getColor(SIDE_BAR_TITLE_BACKGROUND), AcrylicOpacities.sideBar, workbenchBackground));
+		root.style.setProperty('--aster-acrylic-panel-background', toAcrylicColor(theme.getColor(PANEL_BACKGROUND), AcrylicOpacities.panel, workbenchBackground));
+		root.style.setProperty('--aster-acrylic-titlebar-background', toAcrylicColor(theme.getColor(TITLE_BAR_ACTIVE_BACKGROUND), AcrylicOpacities.titleBarActive, workbenchBackground));
+		root.style.setProperty('--aster-acrylic-titlebar-inactive-background', toAcrylicColor(theme.getColor(TITLE_BAR_INACTIVE_BACKGROUND), AcrylicOpacities.titleBarInactive, workbenchBackground));
+		root.style.setProperty('--aster-acrylic-statusbar-background', toAcrylicColor(theme.getColor(STATUS_BAR_BACKGROUND), AcrylicOpacities.statusBar, workbenchBackground));
+		root.style.setProperty('--aster-acrylic-statusbar-no-folder-background', toAcrylicColor(theme.getColor(STATUS_BAR_NO_FOLDER_BACKGROUND), AcrylicOpacities.statusBar, workbenchBackground));
+		root.style.setProperty('--aster-acrylic-outline', outline ? outline.transparent(0.55).toString() : 'rgba(255, 255, 255, 0.14)');
 	}
 
 	//#endregion

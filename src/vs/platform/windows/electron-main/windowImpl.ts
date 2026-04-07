@@ -32,6 +32,7 @@ import { IApplicationStorageMainService, IStorageMainService } from '../../stora
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 import { ThemeIcon } from '../../../base/common/themables.js';
 import { IThemeMainService } from '../../theme/electron-main/themeMainService.js';
+import { AcrylicSetting, AcrylicWindowBackgroundColor, isAcrylicEnabled } from '../../window/common/acrylic.js';
 import { getMenuBarVisibility, IFolderToOpen, INativeWindowConfiguration, IWindowSettings, IWorkspaceToOpen, MenuBarVisibility, hasNativeTitlebar, useNativeFullScreen, useWindowControlsOverlay, DEFAULT_CUSTOM_TITLEBAR_HEIGHT, TitlebarStyle, MenuSettings } from '../../window/common/window.js';
 import { defaultBrowserWindowOptions, getAllWindowsExcludingOffscreen, IWindowsMainService, OpenContext, WindowStateValidator } from './windows.js';
 import { ISingleFolderWorkspaceIdentifier, IWorkspaceIdentifier, isSingleFolderWorkspaceIdentifier, isWorkspaceIdentifier, toWorkspaceIdentifier } from '../../workspace/common/workspace.js';
@@ -668,6 +669,16 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 	private readonly jsCallStackCollector: Delayer<void>;
 	private readonly jsCallStackCollectorStopScheduler: RunOnceScheduler;
 
+	private updateAcrylicEffect(): void {
+		if (!isWindows || !this.win) {
+			return;
+		}
+
+		const acrylicEnabled = isAcrylicEnabled(this.configurationService);
+		this.win.setBackgroundMaterial(acrylicEnabled ? 'acrylic' : 'none');
+		this.win.setBackgroundColor(acrylicEnabled ? AcrylicWindowBackgroundColor : this.themeMainService.getBackgroundColor());
+	}
+
 	constructor(
 		config: IWindowCreationOptions,
 		@ILogService logService: ILogService,
@@ -1089,6 +1100,10 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 	}
 
 	private onConfigurationUpdated(e?: IConfigurationChangeEvent): void {
+
+		if (isWindows && (!e || e.affectsConfiguration(AcrylicSetting))) {
+			this.updateAcrylicEffect();
+		}
 
 		// Swipe command support (macOS)
 		if (isMacintosh && (!e || e.affectsConfiguration('workbench.editor.swipeToNavigate'))) {

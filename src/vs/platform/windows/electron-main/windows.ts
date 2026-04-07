@@ -17,6 +17,7 @@ import { ServicesAccessor, createDecorator } from '../../instantiation/common/in
 import { ILogService } from '../../log/common/log.js';
 import { IProductService } from '../../product/common/productService.js';
 import { IThemeMainService } from '../../theme/electron-main/themeMainService.js';
+import { AcrylicOpacities, AcrylicWindowBackgroundColor, isAcrylicEnabled, toAcrylicColorFromString } from '../../window/common/acrylic.js';
 import { IOpenEmptyWindowOptions, IWindowOpenable, IWindowSettings, TitlebarStyle, WindowMinimumSize, hasNativeTitlebar, useNativeFullScreen, useWindowControlsOverlay, zoomLevelToZoomFactor } from '../../window/common/window.js';
 import { ICodeWindow, IWindowState, WindowMode, defaultWindowState } from '../../window/electron-main/window.js';
 
@@ -133,9 +134,10 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 	const environmentMainService = accessor.get(IEnvironmentMainService);
 
 	const windowSettings = configurationService.getValue<IWindowSettings | undefined>('window');
+	const acrylicEnabled = isAcrylicEnabled(configurationService);
 
 	const options: electron.BrowserWindowConstructorOptions & { experimentalDarkMode: boolean; accentColor?: boolean | string } = {
-		backgroundColor: themeMainService.getBackgroundColor(),
+		backgroundColor: acrylicEnabled ? AcrylicWindowBackgroundColor : themeMainService.getBackgroundColor(),
 		minWidth: WindowMinimumSize.WIDTH,
 		minHeight: WindowMinimumSize.HEIGHT,
 		title: productService.nameLong,
@@ -172,6 +174,9 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 			} else if (typeof borderSetting === 'string') {
 				options.accentColor = borderSetting;
 			}
+		}
+		if (acrylicEnabled) {
+			options.backgroundMaterial = 'acrylic';
 		}
 	}
 
@@ -223,8 +228,10 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 				// to use on initialization, but prefer to keep things
 				// simple as it is temporary and not noticeable
 
-				const titleBarColor = themeMainService.getWindowSplash(undefined)?.colorInfo.titleBarBackground ?? themeMainService.getBackgroundColor();
-				const symbolColor = Color.fromHex(titleBarColor).isDarker() ? '#FFFFFF' : '#000000';
+				const titleBarBaseColor = themeMainService.getWindowSplash(undefined)?.colorInfo.titleBarBackground ?? themeMainService.getBackgroundColor();
+				const titleBarColor = acrylicEnabled ? toAcrylicColorFromString(titleBarBaseColor, AcrylicOpacities.titleBarActive, themeMainService.getBackgroundColor()) ?? titleBarBaseColor : titleBarBaseColor;
+				const titleBarReferenceColor = Color.Format.CSS.parse(titleBarBaseColor) ?? Color.fromHex(titleBarBaseColor);
+				const symbolColor = titleBarReferenceColor.isDarker() ? '#FFFFFF' : '#000000';
 
 				options.titleBarOverlay = {
 					height: 29, // the smallest size of the title bar on windows accounting for the border on windows 11

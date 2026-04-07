@@ -38,3 +38,61 @@
 .monaco-workbench .zoom-status > .zoom-status-right .monaco-action-bar .action-label {
 	color: unset;
 }
+
+.monaco-workbench.acrylic-enabled {
+	background: transparent;
+}
+
+.monaco-workbench.acrylic-enabled .part.titlebar,
+.monaco-workbench.acrylic-enabled .part.sidebar > .title,
+.monaco-workbench.acrylic-enabled .part.sidebar > .content,
+.monaco-workbench.acrylic-enabled .part.panel > .composite.title,
+.monaco-workbench.acrylic-enabled .part.panel > .composite.header-or-footer,
+.monaco-workbench.acrylic-enabled .part.panel > .content,
+.monaco-workbench.acrylic-enabled .part.editor > .content,
+.monaco-workbench.acrylic-enabled .part.statusbar {
+	backdrop-filter: blur(26px) saturate(150%);
+	-webkit-backdrop-filter: blur(26px) saturate(150%);
+}
+
+.monaco-workbench.acrylic-enabled .part.titlebar {
+	box-shadow: 0 10px 30px rgba(8, 12, 18, 0.16);
+}
+
+.monaco-workbench.acrylic-enabled .part.sidebar > .title {
+	background-color: var(--aster-acrylic-sidebar-title-background);
+	border-bottom: 1px solid var(--aster-acrylic-outline);
+}
+
+.monaco-workbench.acrylic-enabled .part.sidebar > .content {
+	background-color: var(--aster-acrylic-sidebar-background);
+}
+
+.monaco-workbench.acrylic-enabled.sidebar-right .part.sidebar > .content {
+	border-left: 1px solid var(--aster-acrylic-outline);
+}
+
+.monaco-workbench.acrylic-enabled:not(.sidebar-right) .part.sidebar > .content {
+	border-right: 1px solid var(--aster-acrylic-outline);
+}
+
+.monaco-workbench.acrylic-enabled .part.panel > .composite.title,
+.monaco-workbench.acrylic-enabled .part.panel > .composite.header-or-footer,
+.monaco-workbench.acrylic-enabled .part.panel > .content {
+	background-color: var(--aster-acrylic-panel-background);
+}
+
+.monaco-workbench.acrylic-enabled .part.editor > .content {
+	background-color: var(--aster-acrylic-editor-background);
+	box-shadow: inset 0 0 0 1px var(--aster-acrylic-outline);
+}
+
+.monaco-workbench.acrylic-enabled .part.editor > .content .editor-group-container > .title,
+.monaco-workbench.acrylic-enabled .part.editor > .content .editor-group-container > .editor-container {
+	background-color: transparent;
+}
+
+.monaco-workbench.acrylic-enabled .part.statusbar {
+	background-color: var(--aster-acrylic-statusbar-background);
+	border-top: 1px solid var(--aster-acrylic-outline);
+}

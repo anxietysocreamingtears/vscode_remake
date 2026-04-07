@@ -21,6 +21,7 @@ import { assertReturnsDefined } from '../../../../base/common/types.js';
 import { ISplashStorageService } from './splash.js';
 import { mainWindow } from '../../../../base/browser/window.js';
 import { ILifecycleService, LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
+import { AcrylicOpacities, AcrylicSetting, isAcrylicEnabled, toAcrylicColor } from '../../../../platform/window/common/acrylic.js';
 import { TitleBarSetting } from '../../../../platform/window/common/window.js';
 
 export class PartsSplash {
@@ -60,6 +61,8 @@ export class PartsSplash {
 			if (e.affectsConfiguration(TitleBarSetting.TITLE_BAR_STYLE)) {
 				this._didChangeTitleBarStyle = true;
 				this._savePartsSplash();
+			} else if (e.affectsConfiguration(AcrylicSetting)) {
+				this._savePartsSplash();
 			}
 		}, this, this._disposables);
 	}
@@ -70,23 +73,30 @@ export class PartsSplash {
 
 	private _savePartsSplash() {
 		const theme = this._themeService.getColorTheme();
+		const acrylicEnabled = isAcrylicEnabled(this._configService);
+		const workbenchBackground = theme.getColor(editorBackground) || themes.WORKBENCH_BACKGROUND(theme);
+		const editorSurface = acrylicEnabled ? toAcrylicColor(theme.getColor(editorBackground), AcrylicOpacities.editor, workbenchBackground) : theme.getColor(editorBackground)?.toString();
+		const titleBarSurface = acrylicEnabled ? toAcrylicColor(theme.getColor(themes.TITLE_BAR_ACTIVE_BACKGROUND), AcrylicOpacities.titleBarActive, workbenchBackground) : theme.getColor(themes.TITLE_BAR_ACTIVE_BACKGROUND)?.toString();
+		const sideBarSurface = acrylicEnabled ? toAcrylicColor(theme.getColor(themes.SIDE_BAR_BACKGROUND), AcrylicOpacities.sideBar, workbenchBackground) : theme.getColor(themes.SIDE_BAR_BACKGROUND)?.toString();
+		const statusBarSurface = acrylicEnabled ? toAcrylicColor(theme.getColor(themes.STATUS_BAR_BACKGROUND), AcrylicOpacities.statusBar, workbenchBackground) : theme.getColor(themes.STATUS_BAR_BACKGROUND)?.toString();
+		const statusBarNoFolderSurface = acrylicEnabled ? toAcrylicColor(theme.getColor(themes.STATUS_BAR_NO_FOLDER_BACKGROUND), AcrylicOpacities.statusBar, workbenchBackground) : theme.getColor(themes.STATUS_BAR_NO_FOLDER_BACKGROUND)?.toString();
 
 		this._partSplashService.saveWindowSplash({
 			zoomLevel: this._configService.getValue<undefined>('window.zoomLevel'),
 			baseTheme: getThemeTypeSelector(theme.type),
 			colorInfo: {
 				foreground: theme.getColor(foreground)?.toString(),
-				background: Color.Format.CSS.formatHex(theme.getColor(editorBackground) || themes.WORKBENCH_BACKGROUND(theme)),
-				editorBackground: theme.getColor(editorBackground)?.toString(),
-				titleBarBackground: theme.getColor(themes.TITLE_BAR_ACTIVE_BACKGROUND)?.toString(),
+				background: acrylicEnabled ? toAcrylicColor(theme.getColor(editorBackground), AcrylicOpacities.editor, workbenchBackground) : Color.Format.CSS.formatHex(workbenchBackground),
+				editorBackground: editorSurface,
+				titleBarBackground: titleBarSurface,
 				titleBarBorder: theme.getColor(themes.TITLE_BAR_BORDER)?.toString(),
 				activityBarBackground: theme.getColor(themes.ACTIVITY_BAR_BACKGROUND)?.toString(),
 				activityBarBorder: theme.getColor(themes.ACTIVITY_BAR_BORDER)?.toString(),
-				sideBarBackground: theme.getColor(themes.SIDE_BAR_BACKGROUND)?.toString(),
+				sideBarBackground: sideBarSurface,
 				sideBarBorder: theme.getColor(themes.SIDE_BAR_BORDER)?.toString(),
-				statusBarBackground: theme.getColor(themes.STATUS_BAR_BACKGROUND)?.toString(),
+				statusBarBackground: statusBarSurface,
 				statusBarBorder: theme.getColor(themes.STATUS_BAR_BORDER)?.toString(),
-				statusBarNoFolderBackground: theme.getColor(themes.STATUS_BAR_NO_FOLDER_BACKGROUND)?.toString(),
+				statusBarNoFolderBackground: statusBarNoFolderSurface,
 				windowBorder: theme.getColor(themes.WINDOW_ACTIVE_BORDER)?.toString() ?? theme.getColor(themes.WINDOW_INACTIVE_BORDER)?.toString()
 			},
 			layoutInfo: !this._shouldSaveLayoutInfo() ? undefined : {

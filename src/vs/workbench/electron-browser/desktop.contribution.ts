@@ -28,6 +28,7 @@ import { NativeWindow } from './window.js';
 import { ModifierKeyEmitter } from '../../base/browser/dom.js';
 import { applicationConfigurationNodeBase, securityConfigurationNodeBase } from '../common/configuration.js';
 import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL } from '../../platform/window/electron-browser/window.js';
+import { AcrylicSetting } from '../../platform/window/common/acrylic.js';
 import product from '../../platform/product/common/product.js';
 
 // Actions
@@ -150,6 +151,22 @@ import product from '../../platform/product/common/product.js';
 				'included': !isWindows,
 				'scope': ConfigurationScope.APPLICATION,
 				'markdownDescription': localize('application.shellEnvironmentResolutionTimeout', "Controls the timeout in seconds before giving up resolving the shell environment when the application is not already launched from a terminal. See our [documentation](https://go.microsoft.com/fwlink/?linkid=2149667) for more information.")
+			}
+		}
+	});
+
+	registry.registerConfiguration({
+		'id': 'ui',
+		'order': 7,
+		'title': localize('uiConfigurationTitle', "UI"),
+		'type': 'object',
+		'properties': {
+			[AcrylicSetting]: {
+				'type': 'boolean',
+				'default': false,
+				'included': isWindows,
+				'scope': ConfigurationScope.APPLICATION,
+				'markdownDescription': localize('ui.acrylic.enabled', "Enable native acrylic background material and translucent workbench surfaces on Windows. Disable this setting to use the normal opaque interface.")
 			}
 		}
 	});
