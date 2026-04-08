@@ -39,6 +39,54 @@
 	color: unset;
 }
 
+.monaco-workbench {
+	--aster-acrylic-blur: 26px;
+	--aster-acrylic-saturate: 145%;
+	--aster-acrylic-shadow: 0 10px 30px rgba(8, 12, 18, 0.16);
+	--aster-accent-color: #4fa4ff;
+	--aster-accent-soft: rgba(79, 164, 255, 0.18);
+	--aster-accent-strong: rgba(79, 164, 255, 0.28);
+	--aster-accent-contrast: #eff7ff;
+	--aster-ui-statusbar-height: 22px;
+	--aster-ui-statusbar-font-size: 12px;
+	--aster-ui-panel-header-height: 35px;
+	--aster-ui-sidebar-header-height: 35px;
+	--aster-ui-tab-height: 35px;
+	--aster-ui-activity-bar-width: 48px;
+	--aster-ui-activity-bar-height: 48px;
+	--editor-group-tab-height: var(--aster-ui-tab-height);
+	--activity-bar-width: var(--aster-ui-activity-bar-width);
+	--activity-bar-action-height: var(--aster-ui-activity-bar-height);
+}
+
+.monaco-workbench .part.statusbar {
+	height: var(--aster-ui-statusbar-height);
+	font-size: var(--aster-ui-statusbar-font-size);
+}
+
+.monaco-workbench .part.statusbar > .items-container > .statusbar-item {
+	line-height: var(--aster-ui-statusbar-height);
+}
+
+.monaco-workbench .part.sidebar > .title,
+.monaco-workbench .part.sidebar > .header-or-footer,
+.monaco-workbench .part.panel > .composite.title,
+.monaco-workbench .part.panel > .composite.header-or-footer {
+	min-height: var(--aster-ui-panel-header-height);
+}
+
+.monaco-workbench .part.editor > .content .editor-group-container > .title {
+	min-height: var(--aster-ui-tab-height);
+}
+
+.monaco-workbench.aster-performance-mode,
+.monaco-workbench.aster-performance-mode * {
+	animation: none !important;
+	transition-duration: 0s !important;
+	transition-delay: 0s !important;
+	scroll-behavior: auto !important;
+}
+
 .monaco-workbench.acrylic-enabled {
 	background: transparent;
 }
@@ -51,12 +99,12 @@
 .monaco-workbench.acrylic-enabled .part.panel > .content,
 .monaco-workbench.acrylic-enabled .part.editor > .content,
 .monaco-workbench.acrylic-enabled .part.statusbar {
-	backdrop-filter: blur(26px) saturate(150%);
-	-webkit-backdrop-filter: blur(26px) saturate(150%);
+	backdrop-filter: blur(var(--aster-acrylic-blur)) saturate(var(--aster-acrylic-saturate));
+	-webkit-backdrop-filter: blur(var(--aster-acrylic-blur)) saturate(var(--aster-acrylic-saturate));
 }
 
 .monaco-workbench.acrylic-enabled .part.titlebar {
-	box-shadow: 0 10px 30px rgba(8, 12, 18, 0.16);
+	box-shadow: var(--aster-acrylic-shadow);
 }
 
 .monaco-workbench.acrylic-enabled .part.sidebar > .title {
@@ -80,11 +128,21 @@
 .monaco-workbench.acrylic-enabled .part.panel > .composite.header-or-footer,
 .monaco-workbench.acrylic-enabled .part.panel > .content {
 	background-color: var(--aster-acrylic-panel-background);
+	background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
 }
 
 .monaco-workbench.acrylic-enabled .part.editor > .content {
+	position: relative;
 	background-color: var(--aster-acrylic-editor-background);
 	box-shadow: inset 0 0 0 1px var(--aster-acrylic-outline);
+}
+
+.monaco-workbench.acrylic-enabled .part.editor > .content::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
 }
 
 .monaco-workbench.acrylic-enabled .part.editor > .content .editor-group-container > .title,
@@ -95,4 +153,37 @@
 .monaco-workbench.acrylic-enabled .part.statusbar {
 	background-color: var(--aster-acrylic-statusbar-background);
 	border-top: 1px solid var(--aster-acrylic-outline);
+}
+
+.monaco-workbench.aster-performance-mode.acrylic-enabled .part.titlebar {
+	box-shadow: none;
+}
+
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item.checked .active-item-indicator:before,
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:focus .active-item-indicator:before,
+.monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.active.tab-border-top:not(:focus) > .tab-border-top-container,
+.monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.selected.tab-border-top:not(:focus) > .tab-border-top-container {
+	border-color: var(--aster-accent-color) !important;
+	background-color: var(--aster-accent-color) !important;
+}
+
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .badge .badge-content,
+.monaco-workbench .part.statusbar > .items-container > .statusbar-item.prominent-kind > .statusbar-item-label {
+	background-color: var(--aster-accent-color);
+	color: var(--aster-accent-contrast);
+}
+
+.monaco-workbench .part.statusbar > .items-container > .statusbar-item.prominent-kind > .statusbar-item-label {
+	border-radius: 6px;
+}
+
+.monaco-workbench .monaco-button.default-colors,
+.monaco-workbench .monaco-button-dropdown.default-colors > .monaco-button {
+	background-color: var(--aster-accent-color);
+	border-color: var(--aster-accent-color);
+}
+
+.monaco-workbench .monaco-button.default-colors:hover,
+.monaco-workbench .monaco-button-dropdown.default-colors > .monaco-button:hover {
+	filter: brightness(1.05);
 }

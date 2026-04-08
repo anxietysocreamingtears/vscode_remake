@@ -28,7 +28,8 @@ import { NativeWindow } from './window.js';
 import { ModifierKeyEmitter } from '../../base/browser/dom.js';
 import { applicationConfigurationNodeBase, securityConfigurationNodeBase } from '../common/configuration.js';
 import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL } from '../../platform/window/electron-browser/window.js';
-import { AcrylicSetting } from '../../platform/window/common/acrylic.js';
+import { AcrylicIntensitySetting, AcrylicSetting, DefaultAcrylicIntensity } from '../../platform/window/common/acrylic.js';
+import { AsterAccentColorSetting, AsterAccentColorValues, AsterDensitySetting, AsterDensityValues, AsterPerformanceModeSetting } from '../common/asterSettings.js';
 import product from '../../platform/product/common/product.js';
 
 // Actions
@@ -167,6 +168,56 @@ import product from '../../platform/product/common/product.js';
 				'included': isWindows,
 				'scope': ConfigurationScope.APPLICATION,
 				'markdownDescription': localize('ui.acrylic.enabled', "Enable native acrylic background material and translucent workbench surfaces on Windows. Disable this setting to use the normal opaque interface.")
+			},
+			[AcrylicIntensitySetting]: {
+				'type': 'number',
+				'default': DefaultAcrylicIntensity,
+				'minimum': 0.35,
+				'maximum': 1,
+				'included': isWindows,
+				'scope': ConfigurationScope.APPLICATION,
+				'markdownDescription': localize('ui.acrylic.intensity', "Controls the strength of the acrylic tint and blur when acrylic is enabled. Lower values keep the interface lighter, higher values make the material effect stronger.")
+			},
+			[AsterAccentColorSetting]: {
+				'type': 'string',
+				'default': 'auto',
+				'enum': [...AsterAccentColorValues],
+				'enumDescriptions': [
+					localize('ui.accentColor.auto', "Follow the active theme accents."),
+					localize('ui.accentColor.ocean', "Use a cool blue accent."),
+					localize('ui.accentColor.mint', "Use a fresh green accent."),
+					localize('ui.accentColor.amber', "Use a warm amber accent."),
+					localize('ui.accentColor.rose', "Use a soft rose accent."),
+					localize('ui.accentColor.graphite', "Use a neutral graphite accent.")
+				],
+				'scope': ConfigurationScope.APPLICATION,
+				'markdownDescription': localize('ui.accentColor', "Controls the accent color used across AsterCode surfaces, badges and active indicators.")
+			},
+			[AsterDensitySetting]: {
+				'type': 'string',
+				'default': 'normal',
+				'enum': [...AsterDensityValues],
+				'enumDescriptions': [
+					localize('ui.density.normal', "Use the standard spacing and control sizes."),
+					localize('ui.density.compact', "Use a tighter layout for tabs, sidebars and status items.")
+				],
+				'scope': ConfigurationScope.APPLICATION,
+				'markdownDescription': localize('ui.density', "Controls the visual density of AsterCode.")
+			}
+		}
+	});
+
+	registry.registerConfiguration({
+		'id': 'astra',
+		'order': 8,
+		'title': localize('astraConfigurationTitle', "AsterCode"),
+		'type': 'object',
+		'properties': {
+			[AsterPerformanceModeSetting]: {
+				'type': 'boolean',
+				'default': false,
+				'scope': ConfigurationScope.APPLICATION,
+				'markdownDescription': localize('astra.performance.mode', "Reduce animations and heavy visual effects to keep AsterCode fast and smooth on slower hardware.")
 			}
 		}
 	});

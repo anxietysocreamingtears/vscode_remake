@@ -5,6 +5,7 @@
 
 import './media/window.css';
 import { localize } from '../../nls.js';
+import { Color } from '../../base/common/color.js';
 import { URI } from '../../base/common/uri.js';
 import { equals } from '../../base/common/objects.js';
 import { EventType, EventHelper, addDisposableListener, ModifierKeyEmitter, getActiveElement, hasWindow, getWindowById, getWindows, $ } from '../../base/browser/dom.js';
@@ -77,9 +78,10 @@ import { ActionBar } from '../../base/browser/ui/actionbar/actionbar.js';
 import { ThemeIcon } from '../../base/common/themables.js';
 import { getWorkbenchContribution } from '../common/contributions.js';
 import { DynamicWorkbenchSecurityConfiguration } from '../common/configuration.js';
+import { AsterAccentColorId, AsterAccentColorSetting, AsterDensitySetting, AsterPerformanceModeSetting, getAsterAccentColor, getAsterDensity, isAsterPerformanceModeEnabled } from '../common/asterSettings.js';
 import { nativeHoverDelegate } from '../../platform/hover/browser/hover.js';
-import { editorBackground } from '../../platform/theme/common/colorRegistry.js';
-import { AcrylicOpacities, isAcrylicEnabled, toAcrylicColor } from '../../platform/window/common/acrylic.js';
+import { editorBackground, focusBorder } from '../../platform/theme/common/colorRegistry.js';
+import { AcrylicIntensitySetting, AcrylicOpacities, getAcrylicBlur, getAcrylicIntensity, getAcrylicOpacity, getAcrylicSaturation, isAcrylicEnabled, toAcrylicColor } from '../../platform/window/common/acrylic.js';
 import { PANEL_BACKGROUND, SIDE_BAR_BACKGROUND, SIDE_BAR_TITLE_BACKGROUND, STATUS_BAR_BACKGROUND, STATUS_BAR_NO_FOLDER_BACKGROUND, TITLE_BAR_ACTIVE_BACKGROUND, TITLE_BAR_INACTIVE_BACKGROUND, WINDOW_ACTIVE_BORDER, WINDOW_INACTIVE_BORDER, WORKBENCH_BACKGROUND } from '../common/theme.js';
 import { IContextMenuService } from '../../platform/contextview/browser/contextView.js';
 
@@ -375,16 +377,22 @@ export class NativeWindow extends BaseWindow {
 				this.onDidChangeConfiguredWindowZoomLevel();
 			} else if (e.affectsConfiguration('keyboard.touchbar.enabled') || e.affectsConfiguration('keyboard.touchbar.ignored')) {
 				this.updateTouchbarMenu();
-			} else if (e.affectsConfiguration('window.border')) {
+			} else if (e.affectsConfiguration('window.border') || e.affectsConfiguration(AsterAccentColorSetting)) {
 				this.updateWindowBorder();
 			}
-			if (e.affectsConfiguration('ui.acrylic.enabled')) {
-				this.updateAcrylicAppearance();
+			if (
+				e.affectsConfiguration('ui.acrylic.enabled')
+				|| e.affectsConfiguration(AcrylicIntensitySetting)
+				|| e.affectsConfiguration(AsterPerformanceModeSetting)
+				|| e.affectsConfiguration(AsterAccentColorSetting)
+				|| e.affectsConfiguration(AsterDensitySetting)
+			) {
+				this.updateWorkbenchAppearance();
 			}
 		}));
 		this._register(this.themeService.onDidColorThemeChange(() => {
 			this.updateWindowBorder();
-			this.updateAcrylicAppearance();
+			this.updateWorkbenchAppearance();
 		}));
 
 		this._register(onDidChangeZoomLevel(targetWindowId => this.handleOnDidChangeZoomLevel(targetWindowId)));
@@ -709,7 +717,7 @@ export class NativeWindow extends BaseWindow {
 
 		// Window border
 		this.updateWindowBorder();
-		this.updateAcrylicAppearance();
+		this.updateWorkbenchAppearance();
 
 		// Smoke Test Driver
 		if (this.environmentService.enableSmokeTestDriver) {
@@ -981,6 +989,7 @@ export class NativeWindow extends BaseWindow {
 		}
 
 		const theme = this.themeService.getColorTheme();
+		const accentPalette = this.resolveAccentPalette();
 
 		let activeBorder = theme.getColor(WINDOW_ACTIVE_BORDER)?.toString();
 		let inactiveBorder = theme.getColor(WINDOW_INACTIVE_BORDER)?.toString();
@@ -990,7 +999,8 @@ export class NativeWindow extends BaseWindow {
 			activeBorder = 'off';
 			inactiveBorder = undefined;
 		} else if (borderSetting === 'default') {
-			activeBorder = activeBorder ?? 'default';
+			activeBorder = accentPalette.primary.toString();
+			inactiveBorder = accentPalette.inactiveBorder;
 		} else if (borderSetting === 'system') {
 			activeBorder = 'default';
 			inactiveBorder = undefined;
@@ -1002,12 +1012,20 @@ export class NativeWindow extends BaseWindow {
 		this.nativeHostService.updateWindowAccentColor(activeBorder, inactiveBorder);
 	}
 
-	private updateAcrylicAppearance(): void {
+	private updateWorkbenchAppearance(): void {
 		const root = mainWindow.document.documentElement;
 		const body = mainWindow.document.body;
 		const workbench = this.layoutService.mainContainer;
+		const theme = this.themeService.getColorTheme();
 		const enabled = isAcrylicEnabled(this.configurationService);
+		const performanceMode = isAsterPerformanceModeEnabled(this.configurationService);
+		const density = getAsterDensity(this.configurationService);
+		const accentPalette = this.resolveAccentPalette();
+		const intensity = getAcrylicIntensity(this.configurationService);
 		const variableNames = [
+			'--aster-acrylic-blur',
+			'--aster-acrylic-saturate',
+			'--aster-acrylic-shadow',
 			'--aster-acrylic-editor-background',
 			'--aster-acrylic-sidebar-background',
 			'--aster-acrylic-sidebar-title-background',
@@ -1016,32 +1034,92 @@ export class NativeWindow extends BaseWindow {
 			'--aster-acrylic-titlebar-inactive-background',
 			'--aster-acrylic-statusbar-background',
 			'--aster-acrylic-statusbar-no-folder-background',
-			'--aster-acrylic-outline'
+			'--aster-acrylic-outline',
+			'--aster-accent-color',
+			'--aster-accent-soft',
+			'--aster-accent-strong',
+			'--aster-accent-contrast',
+			'--aster-ui-statusbar-height',
+			'--aster-ui-statusbar-font-size',
+			'--aster-ui-panel-header-height',
+			'--aster-ui-sidebar-header-height',
+			'--aster-ui-tab-height',
+			'--aster-ui-activity-bar-width',
+			'--aster-ui-activity-bar-height'
 		];
 
 		workbench.classList.toggle('acrylic-enabled', enabled);
 		body?.classList.toggle('acrylic-enabled', enabled);
+		workbench.classList.toggle('aster-performance-mode', performanceMode);
+		body?.classList.toggle('aster-performance-mode', performanceMode);
+		workbench.classList.toggle('aster-ui-density-compact', density === 'compact');
+		body?.classList.toggle('aster-ui-density-compact', density === 'compact');
+
+		for (const variableName of variableNames) {
+			root.style.removeProperty(variableName);
+		}
+
+		root.style.setProperty('--aster-acrylic-blur', `${getAcrylicBlur(intensity, performanceMode)}px`);
+		root.style.setProperty('--aster-acrylic-saturate', `${getAcrylicSaturation(intensity, performanceMode)}%`);
+		root.style.setProperty('--aster-acrylic-shadow', `0 10px 30px rgba(8, 12, 18, ${performanceMode ? '0.08' : '0.16'})`);
+		root.style.setProperty('--aster-accent-color', accentPalette.primary.toString());
+		root.style.setProperty('--aster-accent-soft', accentPalette.soft.toString());
+		root.style.setProperty('--aster-accent-strong', accentPalette.strong.toString());
+		root.style.setProperty('--aster-accent-contrast', accentPalette.contrast);
+		root.style.setProperty('--aster-ui-statusbar-height', density === 'compact' ? '20px' : '22px');
+		root.style.setProperty('--aster-ui-statusbar-font-size', density === 'compact' ? '11px' : '12px');
+		root.style.setProperty('--aster-ui-panel-header-height', density === 'compact' ? '30px' : '35px');
+		root.style.setProperty('--aster-ui-sidebar-header-height', density === 'compact' ? '30px' : '35px');
+		root.style.setProperty('--aster-ui-tab-height', density === 'compact' ? '32px' : '35px');
+		root.style.setProperty('--aster-ui-activity-bar-width', density === 'compact' ? '44px' : '48px');
+		root.style.setProperty('--aster-ui-activity-bar-height', density === 'compact' ? '44px' : '48px');
 
 		if (!enabled) {
-			for (const variableName of variableNames) {
-				root.style.removeProperty(variableName);
-			}
 			return;
 		}
 
-		const theme = this.themeService.getColorTheme();
 		const workbenchBackground = theme.getColor(editorBackground) ?? WORKBENCH_BACKGROUND(theme);
-		const outline = theme.getColor(WINDOW_ACTIVE_BORDER) ?? theme.getColor(WINDOW_INACTIVE_BORDER);
+		const outline = theme.getColor(WINDOW_ACTIVE_BORDER) ?? theme.getColor(WINDOW_INACTIVE_BORDER) ?? accentPalette.primary;
 
-		root.style.setProperty('--aster-acrylic-editor-background', toAcrylicColor(theme.getColor(editorBackground), AcrylicOpacities.editor, workbenchBackground));
-		root.style.setProperty('--aster-acrylic-sidebar-background', toAcrylicColor(theme.getColor(SIDE_BAR_BACKGROUND), AcrylicOpacities.sideBar, workbenchBackground));
-		root.style.setProperty('--aster-acrylic-sidebar-title-background', toAcrylicColor(theme.getColor(SIDE_BAR_TITLE_BACKGROUND), AcrylicOpacities.sideBar, workbenchBackground));
-		root.style.setProperty('--aster-acrylic-panel-background', toAcrylicColor(theme.getColor(PANEL_BACKGROUND), AcrylicOpacities.panel, workbenchBackground));
-		root.style.setProperty('--aster-acrylic-titlebar-background', toAcrylicColor(theme.getColor(TITLE_BAR_ACTIVE_BACKGROUND), AcrylicOpacities.titleBarActive, workbenchBackground));
-		root.style.setProperty('--aster-acrylic-titlebar-inactive-background', toAcrylicColor(theme.getColor(TITLE_BAR_INACTIVE_BACKGROUND), AcrylicOpacities.titleBarInactive, workbenchBackground));
-		root.style.setProperty('--aster-acrylic-statusbar-background', toAcrylicColor(theme.getColor(STATUS_BAR_BACKGROUND), AcrylicOpacities.statusBar, workbenchBackground));
-		root.style.setProperty('--aster-acrylic-statusbar-no-folder-background', toAcrylicColor(theme.getColor(STATUS_BAR_NO_FOLDER_BACKGROUND), AcrylicOpacities.statusBar, workbenchBackground));
-		root.style.setProperty('--aster-acrylic-outline', outline ? outline.transparent(0.55).toString() : 'rgba(255, 255, 255, 0.14)');
+		root.style.setProperty('--aster-acrylic-editor-background', toAcrylicColor(theme.getColor(editorBackground), getAcrylicOpacity(AcrylicOpacities.editor, intensity, performanceMode), workbenchBackground));
+		root.style.setProperty('--aster-acrylic-sidebar-background', toAcrylicColor(theme.getColor(SIDE_BAR_BACKGROUND), getAcrylicOpacity(AcrylicOpacities.sideBar, intensity, performanceMode), workbenchBackground));
+		root.style.setProperty('--aster-acrylic-sidebar-title-background', toAcrylicColor(theme.getColor(SIDE_BAR_TITLE_BACKGROUND), getAcrylicOpacity(AcrylicOpacities.sideBar, intensity, performanceMode), workbenchBackground));
+		root.style.setProperty('--aster-acrylic-panel-background', toAcrylicColor(theme.getColor(PANEL_BACKGROUND), getAcrylicOpacity(AcrylicOpacities.panel, intensity, performanceMode), workbenchBackground));
+		root.style.setProperty('--aster-acrylic-titlebar-background', toAcrylicColor(theme.getColor(TITLE_BAR_ACTIVE_BACKGROUND), getAcrylicOpacity(AcrylicOpacities.titleBarActive, intensity, performanceMode), workbenchBackground));
+		root.style.setProperty('--aster-acrylic-titlebar-inactive-background', toAcrylicColor(theme.getColor(TITLE_BAR_INACTIVE_BACKGROUND), getAcrylicOpacity(AcrylicOpacities.titleBarInactive, intensity, performanceMode), workbenchBackground));
+		root.style.setProperty('--aster-acrylic-statusbar-background', toAcrylicColor(theme.getColor(STATUS_BAR_BACKGROUND), getAcrylicOpacity(AcrylicOpacities.statusBar, intensity, performanceMode), workbenchBackground));
+		root.style.setProperty('--aster-acrylic-statusbar-no-folder-background', toAcrylicColor(theme.getColor(STATUS_BAR_NO_FOLDER_BACKGROUND), getAcrylicOpacity(AcrylicOpacities.statusBar, intensity, performanceMode), workbenchBackground));
+		root.style.setProperty('--aster-acrylic-outline', outline.transparent(0.55).toString());
+	}
+
+	private resolveAccentPalette(): { primary: Color; soft: Color; strong: Color; contrast: string; inactiveBorder: string } {
+		const theme = this.themeService.getColorTheme();
+		const accentSetting = getAsterAccentColor(this.configurationService);
+		const primary = this.resolveAccentColor(accentSetting, theme.getColor(focusBorder) ?? theme.getColor(WINDOW_ACTIVE_BORDER) ?? Color.fromHex('#5ea2ff'));
+		return {
+			primary,
+			soft: primary.transparent(0.18),
+			strong: primary.transparent(0.28),
+			contrast: primary.isLighter() ? '#10151c' : '#f4fbff',
+			inactiveBorder: primary.transparent(0.35).toString()
+		};
+	}
+
+	private resolveAccentColor(accentSetting: AsterAccentColorId, fallback: Color): Color {
+		switch (accentSetting) {
+			case 'ocean':
+				return Color.fromHex('#4fa4ff');
+			case 'mint':
+				return Color.fromHex('#47c7a1');
+			case 'amber':
+				return Color.fromHex('#ffb14c');
+			case 'rose':
+				return Color.fromHex('#ff7f96');
+			case 'graphite':
+				return Color.fromHex('#8ea1b8');
+			default:
+				return fallback;
+		}
 	}
 
 	//#endregion

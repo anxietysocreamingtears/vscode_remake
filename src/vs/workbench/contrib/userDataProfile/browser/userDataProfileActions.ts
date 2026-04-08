@@ -3,13 +3,16 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { localize2 } from '../../../../nls.js';
+import { localize, localize2 } from '../../../../nls.js';
 import { Categories } from '../../../../platform/action/common/actionCommonCategories.js';
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
+import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
+import { IQuickInputService } from '../../../../platform/quickinput/common/quickInput.js';
 import { IUserDataProfilesService } from '../../../../platform/userDataProfile/common/userDataProfile.js';
+import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IHostService } from '../../../services/host/browser/host.js';
-import { PROFILES_CATEGORY } from '../../../services/userDataProfile/common/userDataProfile.js';
+import { IUserDataProfileManagementService, PROFILES_CATEGORY } from '../../../services/userDataProfile/common/userDataProfile.js';
 
 class CreateTransientProfileAction extends Action2 {
 	static readonly ID = 'workbench.profiles.actions.createTemporaryProfile';
@@ -29,6 +32,67 @@ class CreateTransientProfileAction extends Action2 {
 }
 
 registerAction2(CreateTransientProfileAction);
+
+registerAction2(class SaveWorkspaceProfileAction extends Action2 {
+	constructor() {
+		super({
+			id: 'aster.workspaceProfiles.saveCurrentWorkspaceProfile',
+			title: localize2('save workspace profile', "Save Workspace Profile..."),
+			category: PROFILES_CATEGORY,
+			f1: true,
+		});
+	}
+
+	async run(accessor: ServicesAccessor) {
+		const quickInputService = accessor.get(IQuickInputService);
+		const workspaceContextService = accessor.get(IWorkspaceContextService);
+		const userDataProfileManagementService = accessor.get(IUserDataProfileManagementService);
+		const workspace = workspaceContextService.getWorkspace();
+		const suggestedName = workspace.folders[0]?.name ? `${workspace.folders[0].name} Profile` : 'Aster Workspace';
+		const name = await quickInputService.input({
+			title: localize('saveWorkspaceProfileTitle', "Save Workspace Profile"),
+			placeHolder: localize('saveWorkspaceProfilePlaceholder', "Profile name"),
+			value: suggestedName,
+			validateInput: async value => value.trim() ? undefined : localize('saveWorkspaceProfileValidation', "Profile name is required")
+		});
+
+		if (!name) {
+			return;
+		}
+
+		await userDataProfileManagementService.createAndEnterProfile(name.trim());
+	}
+});
+
+registerAction2(class SwitchWorkspaceProfileAction extends Action2 {
+	constructor() {
+		super({
+			id: 'aster.workspaceProfiles.switchWorkspaceProfile',
+			title: localize2('switch workspace profile', "Switch Workspace Profile..."),
+			category: PROFILES_CATEGORY,
+			f1: true,
+		});
+	}
+
+	async run(accessor: ServicesAccessor) {
+		return accessor.get(ICommandService).executeCommand('workbench.profiles.actions.switchProfile');
+	}
+});
+
+registerAction2(class ManageWorkspaceProfilesAction extends Action2 {
+	constructor() {
+		super({
+			id: 'aster.workspaceProfiles.manage',
+			title: localize2('manage workspace profiles', "Manage Workspace Profiles"),
+			category: PROFILES_CATEGORY,
+			f1: true,
+		});
+	}
+
+	async run(accessor: ServicesAccessor) {
+		return accessor.get(ICommandService).executeCommand('workbench.profiles.actions.manageProfiles');
+	}
+});
 
 // Developer Actions
 

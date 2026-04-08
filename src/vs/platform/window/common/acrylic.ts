@@ -8,7 +8,9 @@ import { isWindows } from '../../../base/common/platform.js';
 import { IConfigurationService } from '../../configuration/common/configuration.js';
 
 export const AcrylicSetting = 'ui.acrylic.enabled';
+export const AcrylicIntensitySetting = 'ui.acrylic.intensity';
 export const AcrylicWindowBackgroundColor = '#00000000';
+export const DefaultAcrylicIntensity = 0.72;
 
 export const AcrylicOpacities = {
 	titleBarActive: 0.72,
@@ -23,6 +25,30 @@ const DefaultAcrylicFallback = Color.fromHex('#10141b');
 
 export function isAcrylicEnabled(configurationService: IConfigurationService): boolean {
 	return isWindows && configurationService.getValue<boolean>(AcrylicSetting) === true;
+}
+
+export function getAcrylicIntensity(configurationService: IConfigurationService): number {
+	const value = configurationService.getValue<number>(AcrylicIntensitySetting);
+	if (typeof value !== 'number' || Number.isNaN(value)) {
+		return DefaultAcrylicIntensity;
+	}
+
+	return Math.min(1, Math.max(0.35, value));
+}
+
+export function getAcrylicOpacity(opacity: number, intensity: number, performanceMode: boolean = false): number {
+	const scaledOpacity = opacity * (0.58 + intensity * 0.55) * (performanceMode ? 0.82 : 1);
+	return Math.min(0.96, Math.max(0.16, scaledOpacity));
+}
+
+export function getAcrylicBlur(intensity: number, performanceMode: boolean = false): number {
+	const blur = 12 + intensity * 20;
+	return Math.round(performanceMode ? blur * 0.55 : blur);
+}
+
+export function getAcrylicSaturation(intensity: number, performanceMode: boolean = false): number {
+	const saturation = 110 + intensity * 45;
+	return Math.round(performanceMode ? Math.max(100, saturation * 0.82) : saturation);
 }
 
 export function toAcrylicColor(color: Color | undefined, opacity: number, fallback: Color = DefaultAcrylicFallback): string {
