@@ -1,37 +1,75 @@
-# Aster Code
+# AsterCode
 
-Aster Code is a custom Code - OSS build based on the Visual Studio Code source tree. It keeps the normal editor and extension workflow, removes AI-focused features, and adds a cleaner branded desktop experience.
+AsterCode — это кастомная desktop-сборка Code - OSS на базе исходников Visual Studio Code. Проект сохраняет привычный редактор, полноценную систему расширений и стандартный рабочий процесс VS Code, но убирает AI-интеграции, Copilot, chat/assistant-функции и добавляет собственный брендинг с улучшенным Windows UI.
 
-## Features
+## Ключевые возможности
 
-- Full desktop editor workflow based on Code - OSS
-- Extensions Marketplace support
-- Local `.vsix` installation support
-- AI-related extensions blocked at install time
-- Copilot and assistant UI removed from the desktop experience
-- Custom Aster Code branding and icons
-- Refined welcome screen and polished UI spacing
-- Optional Windows acrylic effect with the `ui.acrylic.enabled` setting
+- полноценный desktop-редактор на базе Code - OSS
+- рабочий Extensions Marketplace
+- установка, удаление и обновление обычных расширений
+- установка локальных `.vsix`
+- блокировка AI-расширений при установке из Marketplace и из локальных пакетов
+- обновлённый брендинг AsterCode
+- acrylic-интерфейс для Windows с настраиваемой интенсивностью
+- режим производительности для слабых или шумных по рендеру систем
+- настройка акцентного цвета и плотности интерфейса
+- workspace profiles с быстрым сохранением и переключением
 
-## Differences From Original VS Code
+## Чем AsterCode отличается от VS Code
 
-- Product branding was renamed from Code - OSS / VS Code defaults to Aster Code
-- AI-first UI entry points were removed or hidden
-- AI marketplace content is filtered out and AI extension installs are blocked
-- The welcome experience was simplified and rebuilt around a non-AI workflow
-- Windows builds can use a translucent acrylic-style interface layer
+- из desktop-версии удалены или скрыты AI-элементы интерфейса
+- Copilot, chat, assistant и связанные AI-интеграции отключены
+- AI-расширения не устанавливаются даже через локальный `.vsix`
+- стартовый экран и базовый продуктовый брендинг адаптированы под AsterCode
+- для Windows добавлен acrylic-слой с прозрачностью и blur-эффектом
+- добавлены продуктовые настройки интерфейса поверх стандартной базы VS Code
 
-## Project Structure
+## Поддержка расширений
 
-- `src/` core workbench, platform, and window code
-- `extensions/` bundled extensions shipped with the app
-- `build/` build scripts, packaging tasks, hygiene checks, and pipeline helpers
-- `scripts/` development launch helpers for desktop, web, and CLI targets
-- `product.json` product identity, branding, and marketplace configuration
+AsterCode сохраняет нормальную модель работы расширений:
 
-## Run From Source
+- поиск и установка через Marketplace
+- удаление и отключение через стандартную панель Extensions
+- установка локальных `.vsix`
+- работа установленных расширений в обычном runtime Code - OSS
 
-Windows development flow:
+Ограничение только одно: AI-ориентированные расширения и интеграции намеренно блокируются.
+
+## Настройки интерфейса
+
+Пример `settings.json`:
+
+```json
+{
+  "ui.acrylic.enabled": true,
+  "ui.acrylic.intensity": 0.72,
+  "astra.performance.mode": false,
+  "ui.accentColor": "ocean",
+  "ui.density": "normal"
+}
+```
+
+Доступные параметры:
+
+- `ui.acrylic.enabled` — включает или выключает acrylic-оформление
+- `ui.acrylic.intensity` — регулирует силу tint/blur-эффекта
+- `astra.performance.mode` — снижает количество анимаций и тяжёлых эффектов
+- `ui.accentColor` — выбирает акцент интерфейса (`auto`, `ocean`, `mint`, `amber`, `rose`, `graphite`)
+- `ui.density` — переключает плотность UI (`normal`, `compact`)
+
+## Workspace Profiles
+
+AsterCode использует встроенную систему профилей VS Code и добавляет быстрые команды для работы с профилями рабочего пространства:
+
+- `AsterCode: Save Workspace Profile`
+- `AsterCode: Switch Workspace Profile`
+- `AsterCode: Manage Workspace Profiles`
+
+Профили позволяют сохранять и быстро переключать layout, пользовательские настройки, состояние рабочего окружения и связанные расширения.
+
+## Запуск из исходников
+
+Запускать команды нужно из корня репозитория:
 
 ```powershell
 npm install
@@ -39,55 +77,39 @@ npm run watch
 .\scripts\code.bat
 ```
 
-Notes:
+Примечания:
 
-- Run the commands from the repository root
-- `npm run watch` keeps the source build updated while you work
-- `.\scripts\code.bat` launches the desktop app from the local development build
+- `npm run watch` поддерживает локальную dev-сборку в актуальном состоянии
+- `.\scripts\code.bat` запускает приложение из локально собранных исходников
+- путь к репозиторию может содержать пробелы, bat-скрипты в проекте уже адаптированы под это
 
-## Build The Windows App
+## Сборка Windows `.exe`
 
-This project uses the official Code - OSS packaging pipeline.
+Для выпуска packaged desktop-сборки используется штатный pipeline Code - OSS:
 
 ```powershell
 npm install
 npm run gulp -- vscode-win32-x64-min
 ```
 
-Expected output:
+Ожидаемый результат:
 
-- Packaged folder: `dist/AsterCode-win32-x64`
-- Main executable: `dist/AsterCode-win32-x64/Aster Code.exe`
+- папка сборки: `dist/AsterCode-win32-x64`
+- основной исполняемый файл: `dist/AsterCode-win32-x64/AsterCode.exe`
 
-## Configuration
+## Структура репозитория
 
-Windows acrylic mode can be toggled with:
+- `src/` — ядро workbench, platform-слой, окна, сервисы и UI
+- `extensions/` — встроенные расширения, поставляемые вместе с приложением
+- `build/` — скрипты сборки, packaging, hygiene и release-задачи
+- `scripts/` — bat/js-скрипты для локального запуска, CLI и dev-workflow
+- `resources/` — иконки, Windows-ресурсы, манифесты и бренд-ассеты
+- `product.json` — идентичность продукта, Marketplace-конфигурация и базовые product overrides
 
-```json
-{
-  "ui.acrylic.enabled": true
-}
-```
+## Скриншоты
 
-Behavior:
+Скриншоты можно хранить в `docs/screenshots/`. В текущем репозитории они не добавлены, потому что основной упор сделан на исходники и готовую packaged-сборку.
 
-- `false` keeps the normal opaque desktop UI
-- `true` enables the Windows acrylic background material with translucent workbench surfaces
+## Лицензия
 
-## Extension Support
-
-Aster Code keeps the normal extension workflow:
-
-- Browse and install from the Marketplace
-- Uninstall or disable extensions from the Extensions view
-- Install local `.vsix` packages
-
-AI-specific extensions and integrations are intentionally blocked. Non-AI extensions continue to work through the standard VS Code extension system.
-
-## Screenshots
-
-The repository currently focuses on source and packaged builds. Screenshots can be added later under `docs/screenshots/` if you want to publish polished captures of the current Aster Code UI.
-
-## License
-
-This repository remains under the [MIT License](LICENSE.txt), following the upstream Code - OSS source license.
+Проект следует исходной лицензии Code - OSS и распространяется по [MIT License](LICENSE.txt).
