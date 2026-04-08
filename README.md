@@ -97,6 +97,22 @@ npm run gulp -- vscode-win32-x64-min
 - папка сборки: `dist/AsterCode-win32-x64`
 - основной исполняемый файл: `dist/AsterCode-win32-x64/AsterCode.exe`
 
+## Установка как обычное приложение
+
+Чтобы запускать AsterCode с рабочего стола как обычную установленную программу, после сборки выполните:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install-desktop.ps1
+```
+
+Скрипт автоматически:
+
+- копирует packaged-сборку в `%LOCALAPPDATA%\Programs\AsterCode`
+- создаёт ярлык `AsterCode.lnk` на рабочем столе
+- создаёт ярлык в меню «Пуск»
+
+После этого приложение можно запускать напрямую с рабочего стола, без перехода в папку `dist` и без ручного управления DLL/ресурсами.
+
 ## Структура репозитория
 
 - `src/` — ядро workbench, platform-слой, окна, сервисы и UI
