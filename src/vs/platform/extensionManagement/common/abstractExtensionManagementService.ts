@@ -24,6 +24,7 @@ import {
 	ExtensionSignatureVerificationCode,
 	IAllowedExtensionsService
 } from './extensionManagement.js';
+import { getAsterAiExtensionBlockMessage, isAsterAiGalleryExtension } from './asterExtensionBlocklist.js';
 import { areSameExtensions, ExtensionKey, getGalleryExtensionId, getGalleryExtensionTelemetryData, getLocalExtensionTelemetryData, isMalicious } from './extensionManagementUtil.js';
 import { ExtensionType, IExtensionManifest, isApplicationScopedExtension, TargetPlatform } from '../../extensions/common/extensions.js';
 import { areApiProposalsCompatible } from '../../extensions/common/extensionValidator.js';
@@ -73,6 +74,10 @@ export abstract class CommontExtensionManagementService extends Disposable imple
 	}
 
 	async canInstall(extension: IGalleryExtension): Promise<true | IMarkdownString> {
+		if (isAsterAiGalleryExtension(extension)) {
+			return getAsterAiExtensionBlockMessage(extension.displayName || extension.identifier.id);
+		}
+
 		const allowedToInstall = this.allowedExtensionsService.isAllowed(extension);
 		if (allowedToInstall !== true) {
 			return new MarkdownString(nls.localize('not allowed to install', "This extension cannot be installed because {0}", allowedToInstall.value));
@@ -684,7 +689,11 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
 		}
 
 		else {
-			if (await this.canInstall(extension) !== true) {
+			const canInstall = await this.canInstall(extension);
+			if (canInstall !== true) {
+				if (isAsterAiGalleryExtension(extension)) {
+					throw new ExtensionManagementError(canInstall.value, ExtensionManagementErrorCode.NotAllowed);
+				}
 				const targetPlatform = await this.getTargetPlatform();
 				throw new ExtensionManagementError(nls.localize('incompatible platform', "The '{0}' extension is not available in {1} for the {2} platform.", extension.identifier.id, this.productService.nameLong, TargetPlatformToString(targetPlatform)), ExtensionManagementErrorCode.IncompatibleTargetPlatform);
 			}

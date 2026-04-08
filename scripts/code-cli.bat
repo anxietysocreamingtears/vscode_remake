@@ -32,7 +32,7 @@ for %%A in (%*) do (
 )
 
 :: Launch Code
-%CODE% --inspect=5874 out\cli.js %~dp0.. %DISABLE_TEST_EXTENSION% %*
+%CODE% --inspect=5874 out\cli.js "%~dp0.." %DISABLE_TEST_EXTENSION% %*
 goto end
 
 :builtin

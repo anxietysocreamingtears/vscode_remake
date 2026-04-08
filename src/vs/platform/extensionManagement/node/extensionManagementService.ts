@@ -37,6 +37,7 @@ import {
 	VerifyExtensionSignatureConfigKey,
 	shouldRequireRepositorySignatureFor,
 } from '../common/extensionManagement.js';
+import { getAsterAiExtensionBlockMessage, isAsterAiManifest } from '../common/asterExtensionBlocklist.js';
 import { areSameExtensions, computeTargetPlatform, ExtensionKey, getGalleryExtensionId, groupByExtension } from '../common/extensionManagementUtil.js';
 import { IExtensionsProfileScannerService, IScannedProfileExtension } from '../common/extensionsProfileScannerService.js';
 import { IExtensionsScannerService, IScannedExtension, ManifestMetadata, UserExtensionsScanOptions } from '../common/extensionsScannerService.js';
@@ -150,6 +151,9 @@ export class ExtensionManagementService extends AbstractExtensionManagementServi
 		try {
 			const manifest = await getManifest(path.resolve(location.fsPath));
 			const extensionId = getGalleryExtensionId(manifest.publisher, manifest.name);
+			if (isAsterAiManifest(manifest)) {
+				throw new ExtensionManagementError(getAsterAiExtensionBlockMessage(manifest.displayName || extensionId).value, ExtensionManagementErrorCode.NotAllowed);
+			}
 			if (manifest.engines && manifest.engines.vscode && !isEngineValid(manifest.engines.vscode, this.productService.version, this.productService.date)) {
 				throw new Error(nls.localize('incompatible', "Unable to install extension '{0}' as it is not compatible with VS Code '{1}'.", extensionId, this.productService.version));
 			}
@@ -187,6 +191,9 @@ export class ExtensionManagementService extends AbstractExtensionManagementServi
 		const local = await this.extensionsScanner.scanUserExtensionAtLocation(location);
 		if (!local || !local.manifest.name || !local.manifest.version) {
 			throw new Error(`Cannot find a valid extension from the location ${location.toString()}`);
+		}
+		if (isAsterAiManifest(local.manifest)) {
+			throw new ExtensionManagementError(getAsterAiExtensionBlockMessage(local.manifest.displayName || local.identifier.id).value, ExtensionManagementErrorCode.NotAllowed);
 		}
 		const allowedToInstall = this.allowedExtensionsService.isAllowed(local);
 		if (allowedToInstall !== true) {

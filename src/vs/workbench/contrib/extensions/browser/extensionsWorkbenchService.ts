@@ -28,6 +28,7 @@ import {
 	shouldRequireRepositorySignatureFor,
 	IGalleryExtensionVersion
 } from '../../../../platform/extensionManagement/common/extensionManagement.js';
+import { getAsterAiExtensionBlockMessage, isAsterAiGalleryExtension, isAsterAiManifest } from '../../../../platform/extensionManagement/common/asterExtensionBlocklist.js';
 import { IWorkbenchExtensionEnablementService, EnablementState, IExtensionManagementServerService, IExtensionManagementServer, IWorkbenchExtensionManagementService, IResourceExtension } from '../../../services/extensionManagement/common/extensionManagement.js';
 import { getGalleryExtensionTelemetryData, getLocalExtensionTelemetryData, areSameExtensions, groupByExtension, getGalleryExtensionId, findMatchingMaliciousEntry } from '../../../../platform/extensionManagement/common/extensionManagementUtil.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
@@ -1390,15 +1391,17 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
 
 		const extensionsControlManifest = await this.extensionManagementService.getExtensionsControlManifest();
 		const pager = await this.galleryService.query(options, token);
-		this.syncInstalledExtensionsWithGallery(pager.firstPage);
+		const firstPage = pager.firstPage.filter(gallery => !isAsterAiGalleryExtension(gallery));
+		this.syncInstalledExtensionsWithGallery(firstPage);
 		return {
-			firstPage: pager.firstPage.map(gallery => this.fromGallery(gallery, extensionsControlManifest)),
+			firstPage: firstPage.map(gallery => this.fromGallery(gallery, extensionsControlManifest)),
 			total: pager.total,
 			pageSize: pager.pageSize,
 			getPage: async (pageIndex, token) => {
 				const page = await pager.getPage(pageIndex, token);
-				this.syncInstalledExtensionsWithGallery(page);
-				return page.map(gallery => this.fromGallery(gallery, extensionsControlManifest));
+				const filteredPage = page.filter(gallery => !isAsterAiGalleryExtension(gallery));
+				this.syncInstalledExtensionsWithGallery(filteredPage);
+				return filteredPage.map(gallery => this.fromGallery(gallery, extensionsControlManifest));
 			}
 		};
 	}
@@ -1412,7 +1415,8 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
 
 		extensionInfos.forEach(e => e.preRelease = e.preRelease ?? this.extensionManagementService.preferPreReleases);
 		const extensionsControlManifest = await this.extensionManagementService.getExtensionsControlManifest();
-		const galleryExtensions = await this.galleryService.getExtensions(extensionInfos, arg1, arg2);
+		const galleryExtensions = (await this.galleryService.getExtensions(extensionInfos, arg1, arg2))
+			.filter(gallery => !isAsterAiGalleryExtension(gallery));
 		this.syncInstalledExtensionsWithGallery(galleryExtensions);
 		return galleryExtensions.map(gallery => this.fromGallery(gallery, extensionsControlManifest));
 	}
@@ -2960,6 +2964,9 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
 
 	private async installFromVSIX(vsix: URI, installOptions: InstallOptions): Promise<ILocalExtension> {
 		const manifest = await this.extensionManagementService.getManifest(vsix);
+		if (isAsterAiManifest(manifest)) {
+			throw new ExtensionManagementError(getAsterAiExtensionBlockMessage(manifest.displayName || getGalleryExtensionId(manifest.publisher, manifest.name)).value, ExtensionManagementErrorCode.NotAllowed);
+		}
 		const existingExtension = this.local.find(local => areSameExtensions(local.identifier, { id: getGalleryExtensionId(manifest.publisher, manifest.name) }));
 		if (existingExtension) {
 			installOptions = installOptions || {};
@@ -2973,6 +2980,10 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
 	}
 
 	private installFromGallery(extension: IExtension, gallery: IGalleryExtension, installOptions: InstallExtensionOptions, servers: IExtensionManagementServer[] | undefined): Promise<ILocalExtension> {
+		if (isAsterAiGalleryExtension(gallery)) {
+			return Promise.reject(new ExtensionManagementError(getAsterAiExtensionBlockMessage(gallery.displayName || gallery.identifier.id).value, ExtensionManagementErrorCode.NotAllowed));
+		}
+
 		installOptions = installOptions ?? {};
 		installOptions.pinned = installOptions.pinned ?? (extension.local?.pinned || !this.shouldAutoUpdateExtension(extension));
 		if (extension.local && !servers) {

@@ -13,6 +13,7 @@ import {
 	IAllowedExtensionsService,
 	EXTENSION_INSTALL_SKIP_PUBLISHER_TRUST_CONTEXT,
 } from '../../../../platform/extensionManagement/common/extensionManagement.js';
+import { getAsterAiExtensionBlockMessage, isAsterAiGalleryExtension, isAsterAiManifest } from '../../../../platform/extensionManagement/common/asterExtensionBlocklist.js';
 import { DidChangeProfileForServerEvent, DidUninstallExtensionOnServerEvent, IExtensionManagementServer, IExtensionManagementServerService, InstallExtensionOnServerEvent, IPublisherInfo, IResourceExtension, IWorkbenchExtensionManagementService, UninstallExtensionOnServerEvent } from './extensionManagement.js';
 import { ExtensionType, isLanguagePackExtension, IExtensionManifest, getWorkspaceSupportTypeMessage, TargetPlatform } from '../../../../platform/extensions/common/extensions.js';
 import { URI } from '../../../../base/common/uri.js';
@@ -390,6 +391,10 @@ export class ExtensionManagementService extends CommontExtensionManagementServic
 	}
 
 	private async canInstallGalleryExtension(gallery: IGalleryExtension): Promise<true | IMarkdownString> {
+		if (isAsterAiGalleryExtension(gallery)) {
+			return getAsterAiExtensionBlockMessage(gallery.displayName || gallery.identifier.id);
+		}
+
 		if (this.extensionManagementServerService.localExtensionManagementServer
 			&& await this.extensionManagementServerService.localExtensionManagementServer.extensionManagementService.canInstall(gallery) === true) {
 			return true;
@@ -412,6 +417,10 @@ export class ExtensionManagementService extends CommontExtensionManagementServic
 	}
 
 	private async canInstallResourceExtension(extension: IResourceExtension): Promise<true | IMarkdownString> {
+		if (isAsterAiManifest(extension.manifest)) {
+			return getAsterAiExtensionBlockMessage(extension.manifest.displayName ?? extension.identifier.id);
+		}
+
 		if (this.extensionManagementServerService.localExtensionManagementServer) {
 			return true;
 		}

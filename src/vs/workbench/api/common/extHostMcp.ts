@@ -67,7 +67,7 @@ const serverDataValidation = vObj({
 // const _serverDataValidationProd: ValidatorType<typeof serverDataValidation> = _serverDataValidationTest;
 
 export class ExtHostMcpService extends Disposable implements IExtHostMpcService {
-	protected _proxy: MainThreadMcpShape;
+	protected _proxy: MainThreadMcpShape | undefined;
 	private readonly _initialProviderPromises = new Set<Promise<void>>();
 	protected readonly _sseEventSources = this._register(new DisposableMap<number, McpHTTPHandle>());
 	private readonly _unresolvedMcpServers = new Map</* collectionId */ string, {
@@ -87,14 +87,18 @@ export class ExtHostMcpService extends Disposable implements IExtHostMpcService 
 	}>();
 
 	constructor(
-		@IExtHostRpcService extHostRpc: IExtHostRpcService,
+		@IExtHostRpcService private readonly _extHostRpc: IExtHostRpcService,
 		@ILogService protected readonly _logService: ILogService,
 		@IExtHostInitDataService private readonly _extHostInitData: IExtHostInitDataService,
 		@IExtHostWorkspace protected readonly _workspaceService: IExtHostWorkspace,
 		@IExtHostVariableResolverProvider private readonly _variableResolver: IExtHostVariableResolverProvider,
 	) {
 		super();
-		this._proxy = extHostRpc.getProxy(MainContext.MainThreadMcp);
+	}
+
+	protected get proxy(): MainThreadMcpShape {
+		this._proxy ??= this._extHostRpc.getProxy(MainContext.MainThreadMcp);
+		return this._proxy;
 	}
 
 	/** Returns all MCP server definitions known to the editor. */
@@ -114,7 +118,7 @@ export class ExtHostMcpService extends Disposable implements IExtHostMpcService 
 
 	protected _startMcp(id: number, launch: McpServerLaunch, _defaultCwd?: URI, errorOnUserInteraction?: boolean): void {
 		if (launch.type === McpServerTransportType.HTTP) {
-			this._sseEventSources.set(id, new McpHTTPHandle(id, launch, this._proxy, this._logService, errorOnUserInteraction));
+			this._sseEventSources.set(id, new McpHTTPHandle(id, launch, this.proxy, this._logService, errorOnUserInteraction));
 			return;
 		}
 
@@ -228,12 +232,12 @@ export class ExtHostMcpService extends Disposable implements IExtHostMpcService 
 				});
 			}
 
-			this._proxy.$upsertMcpCollection(mcp, servers);
+			this.proxy.$upsertMcpCollection(mcp, servers);
 		};
 
 		store.add(toDisposable(() => {
 			this._unresolvedMcpServers.delete(mcp.id);
-			this._proxy.$deleteMcpCollection(mcp.id);
+			this.proxy.$deleteMcpCollection(mcp.id);
 		}));
 
 		if (provider.onDidChangeMcpServerDefinitions) {
@@ -265,7 +269,7 @@ export class ExtHostMcpService extends Disposable implements IExtHostMpcService 
 
 	/** {@link vscode.lm.startMcpGateway} */
 	public async startMcpGateway(): Promise<vscode.McpGateway | undefined> {
-		const result = await this._proxy.$startMcpGateway();
+		const result = await this.proxy.$startMcpGateway();
 		if (!result) {
 			return undefined;
 		}
@@ -285,7 +289,7 @@ export class ExtHostMcpService extends Disposable implements IExtHostMpcService 
 			dispose: () => {
 				this._activeGateways.delete(gatewayId);
 				onDidChangeServers.dispose();
-				this._proxy.$disposeMcpGateway(gatewayId);
+				this.proxy.$disposeMcpGateway(gatewayId);
 			}
 		};
 	}

@@ -26,9 +26,26 @@ import { IExtensionDescriptionDelta } from '../../services/extensions/common/ext
 import { IExtensionHostProxy, IResolveAuthorityResult } from '../../services/extensions/common/extensionHostProxy.js';
 import { ActivationKind, ExtensionActivationReason, IExtensionService, IInternalExtensionService, MissingExtensionDependency } from '../../services/extensions/common/extensions.js';
 import { extHostNamedCustomer, IExtHostContext, IInternalExtHostContext } from '../../services/extensions/common/extHostCustomers.js';
-import { Dto } from '../../services/extensions/common/proxyIdentifier.js';
+import { Dto, ProxyIdentifier } from '../../services/extensions/common/proxyIdentifier.js';
 import { IHostService } from '../../services/host/browser/host.js';
 import { ITimerService } from '../../services/timer/browser/timerService.js';
+
+const disabledMainProxyIdentifiers = new Set([
+	MainContext.MainThreadLanguageModels,
+	MainContext.MainThreadChatAgents2,
+	MainContext.MainThreadCodeMapper,
+	MainContext.MainThreadLanguageModelTools,
+	MainContext.MainThreadEmbeddings,
+	MainContext.MainThreadAiRelatedInformation,
+	MainContext.MainThreadAiEmbeddingVector,
+	MainContext.MainThreadAiSettingsSearch,
+	MainContext.MainThreadMcp,
+	MainContext.MainThreadChatContext,
+	MainContext.MainThreadChatDebug,
+	MainContext.MainThreadChatStatus,
+	MainContext.MainThreadChatOutputRenderer,
+	MainContext.MainThreadChatSessions,
+]);
 
 @extHostNamedCustomer(MainContext.MainThreadExtensionService)
 export class MainThreadExtensionService implements MainThreadExtensionServiceShape {
@@ -54,8 +71,10 @@ export class MainThreadExtensionService implements MainThreadExtensionServiceSha
 		internalExtHostContext._setExtensionHostProxy(
 			new ExtensionHostProxy(extHostContext.getProxy(ExtHostContext.ExtHostExtensionService))
 		);
-		// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
-		internalExtHostContext._setAllMainProxyIdentifiers(Object.keys(MainContext).map((key) => (<any>MainContext)[key]));
+		internalExtHostContext._setAllMainProxyIdentifiers(
+			Object.values<ProxyIdentifier<unknown>>(MainContext)
+				.filter(identifier => !disabledMainProxyIdentifiers.has(identifier))
+		);
 	}
 
 	public dispose(): void {

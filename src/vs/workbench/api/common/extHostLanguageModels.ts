@@ -115,7 +115,7 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 
 	private static _idPool = 1;
 
-	private readonly _proxy: MainThreadLanguageModelsShape;
+	private _proxy: MainThreadLanguageModelsShape | undefined;
 	private readonly _onDidChangeModelAccess = new Emitter<{ from: ExtensionIdentifier; to: ExtensionIdentifier }>();
 	private readonly _onDidChangeProviders = new Emitter<void>();
 	readonly onDidChangeProviders = this._onDidChangeProviders.event;
@@ -131,11 +131,14 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 	private _languageModelProxyProvider: vscode.LanguageModelProxyProvider | undefined;
 
 	constructor(
-		@IExtHostRpcService extHostRpc: IExtHostRpcService,
+		@IExtHostRpcService private readonly _extHostRpc: IExtHostRpcService,
 		@ILogService private readonly _logService: ILogService,
 		@IExtHostAuthentication private readonly _extHostAuthentication: IExtHostAuthentication,
-	) {
-		this._proxy = extHostRpc.getProxy(MainContext.MainThreadLanguageModels);
+	) { }
+
+	private get proxy(): MainThreadLanguageModelsShape {
+		this._proxy ??= this._extHostRpc.getProxy(MainContext.MainThreadLanguageModels);
+		return this._proxy;
 	}
 
 	dispose(): void {
@@ -147,12 +150,12 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 	registerLanguageModelChatProvider(extension: IExtensionDescription, vendor: string, provider: vscode.LanguageModelChatProvider): IDisposable {
 
 		this._languageModelProviders.set(vendor, { extension: extension, provider });
-		this._proxy.$registerLanguageModelProvider(vendor);
+		this.proxy.$registerLanguageModelProvider(vendor);
 
 		let providerChangeEventDisposable: IDisposable | undefined;
 		if (provider.onDidChangeLanguageModelChatInformation) {
 			providerChangeEventDisposable = provider.onDidChangeLanguageModelChatInformation(() => {
-				this._proxy.$onLMProviderChange(vendor);
+				this.proxy.$onLMProviderChange(vendor);
 			});
 		}
 
@@ -164,7 +167,7 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 				}
 			});
 			providerChangeEventDisposable?.dispose();
-			this._proxy.$unregisterProvider(vendor);
+			this.proxy.$unregisterProvider(vendor);
 		});
 	}
 
@@ -274,7 +277,7 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 		const queue: IChatResponsePart[] = [];
 		const sendNow = () => {
 			if (queue.length > 0) {
-				this._proxy.$reportResponsePart(requestId, new SerializableObjectWithBuffers(queue));
+				this.proxy.$reportResponsePart(requestId, new SerializableObjectWithBuffers(queue));
 				queue.length = 0;
 			}
 		};
@@ -334,10 +337,10 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 
 		Promise.resolve(value).then(() => {
 			sendNow();
-			this._proxy.$reportResponseDone(requestId, undefined);
+			this.proxy.$reportResponseDone(requestId, undefined);
 		}, err => {
 			sendNow();
-			this._proxy.$reportResponseDone(requestId, transformErrorForSerialization(err));
+			this.proxy.$reportResponseDone(requestId, transformErrorForSerialization(err));
 		});
 	}
 
@@ -443,7 +446,7 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 	async selectLanguageModels(extension: IExtensionDescription, selector: vscode.LanguageModelChatSelector) {
 
 		// this triggers extension activation
-		const models = await this._proxy.$selectChatModels({ ...selector, extension: extension.identifier });
+		const models = await this.proxy.$selectChatModels({ ...selector, extension: extension.identifier });
 
 		const result: vscode.LanguageModelChat[] = [];
 
@@ -482,7 +485,7 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 		this._pendingRequest.set(requestId, { languageModelId, res });
 
 		try {
-			await this._proxy.$tryStartChatRequest(from, languageModelId, requestId, new SerializableObjectWithBuffers(internalMessages), options, token);
+			await this.proxy.$tryStartChatRequest(from, languageModelId, requestId, new SerializableObjectWithBuffers(internalMessages), options, token);
 
 		} catch (error) {
 			// error'ing here means that the request could NOT be started/made, e.g. wrong model, no access, etc, but
@@ -655,7 +658,7 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 	fileIsIgnored(extension: IExtensionDescription, uri: vscode.Uri, token: vscode.CancellationToken = CancellationToken.None): Promise<boolean> {
 		checkProposedApiEnabled(extension, 'chatParticipantAdditions');
 
-		return this._proxy.$fileIsIgnored(uri, token);
+		return this.proxy.$fileIsIgnored(uri, token);
 	}
 
 	get isModelProxyAvailable(): boolean {
@@ -697,10 +700,10 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 		checkProposedApiEnabled(extension, 'chatParticipantPrivate');
 
 		const handle = ExtHostLanguageModels._idPool++;
-		this._proxy.$registerFileIgnoreProvider(handle);
+		this.proxy.$registerFileIgnoreProvider(handle);
 		this._ignoredFileProviders.set(handle, provider);
 		return toDisposable(() => {
-			this._proxy.$unregisterFileIgnoreProvider(handle);
+			this.proxy.$unregisterFileIgnoreProvider(handle);
 			this._ignoredFileProviders.delete(handle);
 		});
 	}

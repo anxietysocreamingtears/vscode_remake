@@ -7,8 +7,7 @@ import * as dom from '../../../../base/browser/dom.js';
 import { BaseActionViewItem, IBaseActionViewItemOptions } from '../../../../base/browser/ui/actionbar/actionViewItems.js';
 import { IManagedHoverContent } from '../../../../base/browser/ui/hover/hover.js';
 import { IAction, WorkbenchActionExecutedClassification, WorkbenchActionExecutedEvent } from '../../../../base/common/actions.js';
-import { CancellationTokenSource } from '../../../../base/common/cancellation.js';
-import { Disposable, MutableDisposable, toDisposable } from '../../../../base/common/lifecycle.js';
+import { Disposable } from '../../../../base/common/lifecycle.js';
 import { isWeb } from '../../../../base/common/platform.js';
 import { localize } from '../../../../nls.js';
 import { IActionViewItemService } from '../../../../platform/actions/browser/actionViewItemService.js';
@@ -17,16 +16,14 @@ import { CommandsRegistry, ICommandService } from '../../../../platform/commands
 import { IContextKey, IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
-import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { DisablementReason, IUpdateService, State, StateType } from '../../../../platform/update/common/update.js';
 import { IWorkbenchContribution } from '../../../common/contributions.js';
 import { IHostService } from '../../../services/host/browser/host.js';
-import { IChatService } from '../../chat/common/chatService/chatService.js';
 import { computeProgressPercent, isMajorMinorVersionChange } from '../common/updateUtils.js';
-import { waitForState } from '../../../../base/common/observable.js';
 import './media/updateTitleBarEntry.css';
 import { UpdateTooltip } from './updateTooltip.js';
 
@@ -70,11 +67,9 @@ export class UpdateTitleBarContribution extends Disposable implements IWorkbench
 	private state!: State;
 	private entry: UpdateTitleBarEntry | undefined;
 	private tooltipVisible = false;
-	private readonly pendingShow = this._register(new MutableDisposable());
 
 	constructor(
 		@IActionViewItemService actionViewItemService: IActionViewItemService,
-		@IChatService private readonly chatService: IChatService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IContextKeyService contextKeyService: IContextKeyService,
 		@IHostService private readonly hostService: IHostService,
@@ -130,7 +125,6 @@ export class UpdateTitleBarContribution extends Disposable implements IWorkbench
 	}
 
 	private async onStateChange(startup = false) {
-		this.pendingShow.clear();
 		if (ACTIONABLE_STATES.includes(this.state.type)) {
 			await this.setContextWhenChatIdle(true);
 		} else {
@@ -176,19 +170,7 @@ export class UpdateTitleBarContribution extends Disposable implements IWorkbench
 	}
 
 	private async setContextWhenChatIdle(value: boolean) {
-		if (!this.chatService.requestInProgressObs.get()) {
-			this.context.set(value);
-			return;
-		}
-
-		const cts = new CancellationTokenSource();
-		this.pendingShow.value = toDisposable(() => cts.dispose(true));
-		try {
-			await waitForState(this.chatService.requestInProgressObs, inProgress => !inProgress, undefined, cts.token);
-			this.context.set(value);
-		} catch {
-			// cancelled — a newer state change superseded this one
-		}
+		this.context.set(value);
 	}
 
 	private detectVersionChange() {

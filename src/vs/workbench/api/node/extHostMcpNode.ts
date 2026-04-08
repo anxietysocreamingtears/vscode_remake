@@ -27,7 +27,7 @@ export class NodeExtHostMpcService extends ExtHostMcpService {
 		if (launch.type === McpServerTransportType.Stdio) {
 			this.startNodeMpc(id, launch, defaultCwd);
 		} else if (launch.type === McpServerTransportType.HTTP) {
-			this._sseEventSources.set(id, new McpHTTPHandleNode(id, launch, this._proxy, this._logService, errorOnUserInteraction));
+			this._sseEventSources.set(id, new McpHTTPHandleNode(id, launch, this.proxy, this._logService, errorOnUserInteraction));
 		} else {
 			super._startMcp(id, launch, defaultCwd, errorOnUserInteraction);
 		}
@@ -52,7 +52,8 @@ export class NodeExtHostMpcService extends ExtHostMcpService {
 	}
 
 	private async startNodeMpc(id: number, launch: McpServerTransportStdio, defaultCwd?: URI): Promise<void> {
-		const onError = (err: Error | string) => this._proxy.$onDidChangeState(id, {
+		const proxy = this.proxy;
+		const onError = (err: Error | string) => proxy.$onDidChangeState(id, {
 			state: McpConnectionState.Kind.Error,
 			// eslint-disable-next-line local/code-no-any-casts
 			code: err.hasOwnProperty('code') ? String((err as any).code) : undefined,
@@ -96,7 +97,7 @@ export class NodeExtHostMpcService extends ExtHostMcpService {
 				env
 			);
 
-			this._proxy.$onDidPublishLog(id, LogLevel.Debug, `Server command line: ${executable} ${args.join(' ')}`);
+			proxy.$onDidPublishLog(id, LogLevel.Debug, `Server command line: ${executable} ${args.join(' ')}`);
 			child = spawn(executable, args, {
 				stdio: 'pipe',
 				cwd,
@@ -111,18 +112,18 @@ export class NodeExtHostMpcService extends ExtHostMcpService {
 		// Create the connection manager for graceful shutdown
 		const connectionManager = new McpStdioStateHandler(child);
 
-		this._proxy.$onDidChangeState(id, { state: McpConnectionState.Kind.Starting });
+		proxy.$onDidChangeState(id, { state: McpConnectionState.Kind.Starting });
 
-		child.stdout.pipe(new StreamSplitter('\n')).on('data', line => this._proxy.$onDidReceiveMessage(id, line.toString()));
+		child.stdout.pipe(new StreamSplitter('\n')).on('data', line => proxy.$onDidReceiveMessage(id, line.toString()));
 
 		child.stdin.on('error', onError);
 		child.stdout.on('error', onError);
 
 		// Stderr handling is not currently specified https://github.com/modelcontextprotocol/specification/issues/177
 		// Just treat it as generic log data for now
-		child.stderr.pipe(new StreamSplitter('\n')).on('data', line => this._proxy.$onDidPublishLog(id, LogLevel.Warning, `[server stderr] ${line.toString().trimEnd()}`));
+		child.stderr.pipe(new StreamSplitter('\n')).on('data', line => proxy.$onDidPublishLog(id, LogLevel.Warning, `[server stderr] ${line.toString().trimEnd()}`));
 
-		child.on('spawn', () => this._proxy.$onDidChangeState(id, { state: McpConnectionState.Kind.Running }));
+		child.on('spawn', () => proxy.$onDidChangeState(id, { state: McpConnectionState.Kind.Running }));
 
 		child.on('error', e => {
 			onError(e);
@@ -131,9 +132,9 @@ export class NodeExtHostMpcService extends ExtHostMcpService {
 			this.nodeServers.deleteAndDispose(id);
 
 			if (code === 0 || connectionManager.stopped) {
-				this._proxy.$onDidChangeState(id, { state: McpConnectionState.Kind.Stopped });
+				proxy.$onDidChangeState(id, { state: McpConnectionState.Kind.Stopped });
 			} else {
-				this._proxy.$onDidChangeState(id, {
+				proxy.$onDidChangeState(id, {
 					state: McpConnectionState.Kind.Error,
 					message: `Process exited with code ${code}`,
 				});

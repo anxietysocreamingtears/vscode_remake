@@ -20,9 +20,10 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
 const repoPath = path.dirname(import.meta.dirname);
+const distPath = path.join(repoPath, 'dist');
 const commit = getVersion(repoPath);
 const buildFolderPrefix = product.nameShort.replace(/\s+/g, '');
-const buildPath = (arch: string) => path.join(path.dirname(repoPath), `${buildFolderPrefix}-win32-${arch}`);
+const buildPath = (arch: string) => path.join(distPath, `${buildFolderPrefix}-win32-${arch}`);
 const setupDir = (arch: string, target: string) => path.join(repoPath, '.build', `win32-${arch}`, `${target}-setup`);
 const innoSetupPath = path.join(path.dirname(path.dirname(require.resolve('innosetup'))), 'bin', 'ISCC.exe');
 const signWin32Path = path.join(repoPath, 'build', 'azure-pipelines', 'common', 'sign-win32.ts');

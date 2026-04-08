@@ -42,6 +42,7 @@ import * as cp from 'child_process';
 const glob = promisify(globCallback);
 const rcedit = promisify(rceditCallback);
 const root = path.dirname(import.meta.dirname);
+const distRoot = path.join(root, 'dist');
 const commit = getVersion(root);
 const buildFolderPrefix = product.nameShort.replace(/\s+/g, '');
 
@@ -314,7 +315,7 @@ function computeChecksum(filename: string): string {
 }
 
 function packageTask(platform: string, arch: string, sourceFolderName: string, destinationFolderName: string, _opts?: { stats?: boolean }) {
-	const destination = path.join(path.dirname(root), destinationFolderName);
+	const destination = path.join(distRoot, destinationFolderName);
 	platform = platform || process.platform;
 
 	const task = () => {
@@ -635,7 +636,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 }
 
 function patchWin32DependenciesTask(destinationFolderName: string) {
-	const cwd = path.join(path.dirname(root), destinationFolderName);
+	const cwd = path.join(distRoot, destinationFolderName);
 
 	return async () => {
 		const versionedResourcesFolder = util.getVersionedResourcesFolder('win32', commit!);
@@ -670,7 +671,7 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 	};
 }
 
-const buildRoot = path.dirname(root);
+const buildRoot = distRoot;
 
 const BUILD_TARGETS = [
 	{ platform: 'win32', arch: 'x64' },
