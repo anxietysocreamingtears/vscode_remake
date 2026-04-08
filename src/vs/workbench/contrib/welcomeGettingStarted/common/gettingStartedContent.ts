@@ -19,7 +19,7 @@ interface IGettingStartedContentProvider {
 	(): string;
 }
 
-const brandName = product.nameShort || 'Aster Code';
+const brandName = product.nameShort || 'AsterCode';
 
 class GettingStartedContentProviderRegistry {
 
